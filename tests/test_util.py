@@ -25,3 +25,12 @@ def test_generate_samples():
     assert len(samples) == steps ** 2
     assert samples[0].shape == (patch_size, patch_size, 3)
     assert np.all(image[:patch_size, :patch_size] == samples[0])
+
+
+def test_image_downscale():
+    N = 100
+    factor = 3
+    image = np.random.randint(255, size=(N, N, 3))
+    resized = subpixel.util.downscale(image, 1 / factor)
+
+    assert resized.shape == (N // factor, N // factor, 3)
