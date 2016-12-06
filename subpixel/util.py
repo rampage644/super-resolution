@@ -21,6 +21,26 @@ def generate_samples_from(image, patch_size=17, stride=13):
 
 
 def downscale(image, factor=1/3):
+    '''Downscale image by given factor'''
     # hope it does same downscaling as blurring and subsampling
     # as they state in a paper
     return scipy.misc.imresize(image, factor)
+
+
+def generate_train_data_from(file, factor, patch_size, stride):
+    '''Generate input-output pairs of patches
+
+    Input patches correspond to rescaled by factor
+    output patches of the same image.
+    '''
+    image = scipy.misc.imread(file)
+    rescaled = downscale(image, 1 / factor)
+
+    input_patches = generate_samples_from(
+        rescaled, patch_size, stride
+    )
+    output_patches = generate_samples_from(
+        image, factor * patch_size, factor * stride
+    )
+
+    return zip(input_patches, output_patches)

@@ -5,9 +5,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import subpixel.util
 import math
+import unittest.mock
+import operator
 import numpy as np
+import subpixel.util
 
 
 def test_generate_samples():
@@ -34,3 +36,26 @@ def test_image_downscale():
     resized = subpixel.util.downscale(image, 1 / factor)
 
     assert resized.shape == (N // factor, N // factor, 3)
+
+
+def test_generate_train_data():
+    N = 300
+    factor = 3
+    patch_size = 17
+    stride = 13
+    image = np.random.randint(255, size=(N, N, 3))
+    o_mock = unittest.mock.MagicMock(
+        spec='scipy.misc.imread', return_value=image
+    )
+    with unittest.mock.patch('scipy.misc.imread', o_mock):
+        it = subpixel.util.generate_train_data_from(
+            'somefile', factor, patch_size, stride)
+        data = list(it)
+        x_data, y_data = (
+            list(map(operator.itemgetter(0), data)),
+            list(map(operator.itemgetter(1), data))
+        )
+
+        assert len(x_data) == len(y_data)
+        assert x_data[0].shape == (patch_size, patch_size, 3)
+        assert y_data[0].shape == (patch_size * factor, patch_size * factor, 3)
