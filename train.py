@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 
 import os
 import itertools
+import operator
 import tensorflow as tf
+import numpy as np
 
 import subpixel.model
 import subpixel.util
@@ -27,11 +29,11 @@ KERNEL_SIZES = [5, 3, 3]
 
 
 # Taken from python `itertools` recipes
-def grouper(iterable, n, fillvalue=None):
+def grouper(iterable, number, fillvalue=None):
     "Collect data into fixed-length chunks or blocks"
     # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
-    args = [iter(iterable)] * n
-    return itertools.zip_longest(*args, fillvalue=fillvalue)
+    args = [iter(iterable)] * number
+    return zip(*args)
 
 
 def main(argv=None):
@@ -42,22 +44,27 @@ def main(argv=None):
         FLAGS.strides = [1] * len(KERNEL_SIZES)
 
         model = subpixel.model.SuperResolution(FLAGS)
-        patch_stride = sum(map(lambda x: x % 2, KERNEL_SIZES))
+        patch_stride = FLAGS.patch_size - sum(map(lambda x: x % 2, KERNEL_SIZES))
 
-        for e in range(FLAGS.epoch):
+        sess.run(tf.global_variables_initializer())
+
+        for epoch in range(FLAGS.epoch):
             for data in grouper(
-                subpixel.util.generate_train_data_from_dir(FLAGS.train_dir, FLAGS.factor, FLAGS.patch_size, patch_stride),
-                FLAGS.batch_size
+                    subpixel.util.generate_train_data_from_dir(
+                        FLAGS.train_dir, FLAGS.factor, FLAGS.patch_size, patch_stride),
+                    FLAGS.batch_size
             ):
-                import ipdb; ipdb.set_trace()
+                xdata, ydata = (
+                    list(map(operator.itemgetter(0), data)),
+                    list(map(operator.itemgetter(1), data))
+                )
                 loss, _ = sess.run([model.loss, model.train_op], {
-                    model.input: x,
-                    model.output: y
+                    model.input: np.array(xdata, ndmin=4),
+                    model.output: np.array(ydata, ndmin=4)
                 })
 
-                print('\rloss: {}'.format(loss), end='')
+            print('\rEpoch {}: loss: {:.2f}'.format(epoch+1, loss), end='')
 
 
 if __name__ == '__main__':
     tf.app.run()
-
