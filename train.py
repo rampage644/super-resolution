@@ -17,6 +17,7 @@ import subpixel.util
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('train_dir', os.getcwd(), 'Directory with training data (images)')
 tf.app.flags.DEFINE_string('log_dir', os.path.join(os.getcwd(), 'log'), 'Directory with training data (images)')
+tf.app.flags.DEFINE_string('ckpt_dir', os.path.join(os.getcwd(), 'ckpt'), 'Directory for model checkpoints')
 tf.app.flags.DEFINE_integer('factor', 3, 'Upscaling factor')
 tf.app.flags.DEFINE_integer('patch_size', 17, 'Patch size to crop images into')
 tf.app.flags.DEFINE_integer('height', 17, 'Patch height')
@@ -51,6 +52,16 @@ def main(argv=None):
         sess.run(tf.global_variables_initializer())
         writer = tf.train.SummaryWriter(FLAGS.log_dir, graph=tf.get_default_graph())
 
+        saver = tf.train.Saver()
+        saved_model = tf.train.latest_checkpoint(FLAGS.ckpt_dir)
+        if saved_model:
+            saver.restore(sess, saved_model)
+        else:
+            print('Prevous model not found, starting from scratch.')
+
+        if not os.path.exists(FLAGS.ckpt_dir):
+            os.makedirs(FLAGS.ckpt_dir)
+
         for epoch in range(FLAGS.epoch):
             for data in grouper(
                     subpixel.util.generate_train_data_from_dir(
@@ -73,6 +84,8 @@ def main(argv=None):
                 writer.add_summary(summary, model.step.eval(sess))
 
             print('\rEpoch {}: loss: {:.2f} psnr {:.2f}'.format(epoch+1, loss, psnr), end='')
+
+        saver.save(sess, os.path.join(FLAGS.ckpt_dir, 'super_resolution'), global_step=model.step)
     print()
 
 
