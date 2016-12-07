@@ -72,12 +72,13 @@ class SuperResolution(object):
             self.height * self.factor,
             self.height * self.factor,
             3])
-        self.predicted = subpixel
+        self.predicted_norm = subpixel
+        self.predicted = tf.cast(self.predicted_norm * 127.0 + 127.0, tf.uint8)
 
 
     def _create_loss(self):
         self.loss = (
-            tf.reduce_sum(tf.squared_difference(self.predicted, self.output_norm)) *
+            tf.reduce_sum(tf.squared_difference(self.predicted_norm, self.output_norm)) *
             1.0 / (3 * self.width * self.height * self.factor ** 2)
         )
 
