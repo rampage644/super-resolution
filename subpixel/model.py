@@ -18,6 +18,7 @@ class SuperResolution(object):
         self.filters = config.filters
         self.kernel_sizes = config.kernel_sizes
         self.strides = config.strides
+        self.learning_rate = config.learning_rate
 
         self._build()
 
@@ -28,17 +29,24 @@ class SuperResolution(object):
         self._create_train()
         self._create_metric()
 
+        self.summary = tf.summary.merge_all()
+
     def _create_variables(self):
         with tf.variable_scope('variables'):
+            self.step = tf.Variable(0, trainable=False)
+
             self.input = tf.placeholder(
                 tf.float32, [None, self.height, self.width, 3], 'input'
             )
+            self.input_norm = tf.div(self.input - 127.0, 255.0)
+
             self.output = tf.placeholder(
                 tf.float32, [None, self.height * self.factor, self.width * self.factor, 3], 'output'
             )
+            self.output_norm = tf.div(self.output - 127.0, 255.0)
 
     def _create_inference(self):
-        x0 = self.input
+        x0 = self.input_norm
 
         for idx, (stride, filter_n, kernel) in enumerate(zip(self.strides, self.filters, self.kernel_sizes)):
             layer = tf.contrib.layers.convolution(
@@ -50,7 +58,8 @@ class SuperResolution(object):
                  # spatial dimensions reduction
                  # XXX: consider using 'VALID' instead
                 padding='SAME',
-                activation_fn=tf.nn.tanh
+                activation_fn=tf.nn.tanh,
+                weights_initializer=tf.truncated_normal_initializer(stddev=0.01)
             )
             self.variables['layer' + str(idx)] = layer
             x0 = layer
@@ -68,13 +77,17 @@ class SuperResolution(object):
 
     def _create_loss(self):
         self.loss = (
-            tf.reduce_sum(tf.squared_difference(self.predicted, self.output)) *
+            tf.reduce_sum(tf.squared_difference(self.predicted, self.output_norm)) *
             1.0 / (3 * self.width * self.height * self.factor ** 2)
         )
 
+        tf.summary.scalar('loss', self.loss)
+
     def _create_train(self):
-        self.train_op = tf.train.AdamOptimizer().minimize(self.loss)
+        self.train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.step)
 
     def _create_metric(self):
-        maxf = 255.0
+        maxf = 1.0
         self.psnr = 20.0 * tf.log(maxf / tf.sqrt(self.loss)) / np.log(10)
+
+        tf.summary.scalar('psnr', self.psnr)
