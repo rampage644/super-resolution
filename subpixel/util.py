@@ -13,8 +13,8 @@ import scipy.misc
 def generate_samples_from(image, patch_size=17, stride=13):
     '''Generate samples from HR image'''
     height, width, _ = image.shape
-    h_steps, w_steps = (np.arange(0, height - stride, stride),
-                        np.arange(0, width - stride, stride))
+    h_steps, w_steps = (np.arange(0, height - patch_size + 1, stride),
+                        np.arange(0, width - patch_size + 1, stride))
 
     for h_step, w_step in itertools.product(h_steps, w_steps):
         yield image[w_step:w_step + patch_size,

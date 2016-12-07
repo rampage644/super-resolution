@@ -13,20 +13,23 @@ import subpixel.util
 
 
 def test_generate_samples():
-    N = 100
+    N = 50
     image = np.random.randint(255, size=(N, N, 3))
     patch_size = 17
-    stride = 13
-    it = subpixel.util.generate_samples_from(
-        image, patch_size, stride)
+    strides = 3, 5, 13
 
-    samples = list(it)
+    for stride in strides:
+        it = subpixel.util.generate_samples_from(
+            image, patch_size, stride)
 
-    # see math here: https://arxiv.org/pdf/1603.07285.pdf
-    steps = (math.floor((N - patch_size) / stride) + 1)
-    assert len(samples) == steps ** 2
-    assert samples[0].shape == (patch_size, patch_size, 3)
-    assert np.all(image[:patch_size, :patch_size] == samples[0])
+        samples = list(it)
+
+        # see math here: https://arxiv.org/pdf/1603.07285.pdf
+        steps = (math.floor((N - patch_size) / stride) + 1)
+        assert len(samples) == steps ** 2
+        assert samples[0].shape == (patch_size, patch_size, 3)
+        assert len(set(map(lambda x: x.shape, samples))) == 1
+        assert np.all(image[:patch_size, :patch_size] == samples[0])
 
 
 def test_image_downscale():
