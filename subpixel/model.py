@@ -43,7 +43,6 @@ class SuperResolution(object):
             self.output = tf.placeholder(
                 tf.float32, [None, self.height * self.factor, self.width * self.factor, 3], 'output'
             )
-            self.output_norm = tf.div(self.output - 127.0, 127.0)
 
     def _create_inference(self):
         x0 = self.input_norm
@@ -73,12 +72,12 @@ class SuperResolution(object):
             self.height * self.factor,
             3])
         self.predicted_norm = subpixel
-        self.predicted = tf.cast(self.predicted_norm * 127.0 + 127.0, tf.uint8)
+        self.predicted = self.predicted_norm * 127.0 + 127.0
 
 
     def _create_loss(self):
         self.loss = (
-            tf.reduce_sum(tf.squared_difference(self.predicted_norm, self.output_norm)) *
+            tf.reduce_sum(tf.squared_difference(self.predicted, self.output)) *
             1.0 / (3 * self.width * self.height * self.factor ** 2)
         )
 
@@ -88,7 +87,7 @@ class SuperResolution(object):
         self.train_op = tf.train.AdamOptimizer(self.learning_rate).minimize(self.loss, global_step=self.step)
 
     def _create_metric(self):
-        maxf = 1.0
+        maxf = 255.0
         self.psnr = 20.0 * tf.log(maxf / tf.sqrt(self.loss)) / np.log(10)
 
         tf.summary.scalar('psnr', self.psnr)
