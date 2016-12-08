@@ -24,6 +24,7 @@ tf.app.flags.DEFINE_integer('height', 17, 'Patch height')
 tf.app.flags.DEFINE_integer('width', 17, 'Patch widht')
 tf.app.flags.DEFINE_integer('batch_size', 32, 'Batch size')
 tf.app.flags.DEFINE_integer('epoch', 10, 'Epoch count')
+tf.app.flags.DEFINE_integer('log_every', 100, 'Print log messages every `log_every` steps')
 tf.app.flags.DEFINE_float('learning_rate', 0.01, 'Initial learning rate')
 
 COLORS = 3
@@ -81,9 +82,11 @@ def main(argv=None):
                     model.output: np.array(ydata, ndmin=4)
                 })
 
-                writer.add_summary(summary, model.step.eval(sess))
-
-            print('\rEpoch {}: loss: {:.2f} psnr {:.2f}'.format(epoch+1, loss, psnr), end='')
+                step = model.step.eval(sess)
+                writer.add_summary(summary, step)
+                if step % FLAGS.log_every == 0:
+                    print('\rEpoch {:<10} step {:<10} loss: {:<10.2f} psnr {:<10.2f}'\
+                        .format(epoch+1, step, loss, psnr), end='')
 
         saver.save(sess, os.path.join(FLAGS.ckpt_dir, 'super_resolution'), global_step=model.step)
     print()
