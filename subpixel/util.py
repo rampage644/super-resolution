@@ -34,7 +34,10 @@ def generate_train_data_from(filename, factor, patch_size, stride):
     Input patches correspond to rescaled by factor
     output patches of the same image.
     '''
-    image = scipy.misc.imread(filename)
+    try:
+        image = scipy.misc.imread(filename)
+    except IOError:
+        return []
     rescaled = downscale(image, 1 / factor)
 
     input_patches = generate_samples_from(
@@ -52,7 +55,7 @@ def generate_train_data_from_dir(directory, factor, patch_size, stride):
     files = [
         os.path.join(directory, filename)
         for filename in os.listdir(directory)
-        if 'png' in filename
+        if 'png' in filename or 'jpg' in filename
     ]
 
     return (data

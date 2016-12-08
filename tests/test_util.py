@@ -64,6 +64,25 @@ def test_generate_train_data():
         assert y_data[0].shape == (patch_size * factor, patch_size * factor, 3)
 
 
+def test_generate_train_data_errors():
+    o_mock = unittest.mock.MagicMock(
+        spec='scipy.misc.imread', side_effect=IOError('foo')
+    )
+    with unittest.mock.patch('scipy.misc.imread', o_mock):
+        it = subpixel.util.generate_train_data_from(
+            'somefile', 0, 0, 0)
+        data = list(it)
+
+        x_data, y_data = (
+            list(map(operator.itemgetter(0), data)),
+            list(map(operator.itemgetter(1), data))
+        )
+
+        assert len(data) == 0
+        assert len(x_data) == 0
+        assert len(y_data) == 0
+
+
 def test_generate_data_from_directory():
     N = 51
     factor = 3
