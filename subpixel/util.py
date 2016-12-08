@@ -18,7 +18,8 @@ def generate_samples_from(image, patch_size=17, stride=13):
 
     for h_step, w_step in itertools.product(h_steps, w_steps):
         yield image[h_step:h_step + patch_size,
-                    w_step:w_step + patch_size]
+                    w_step:w_step + patch_size,
+                    :3]
 
 
 def downscale(image, factor=1/3):
@@ -36,7 +37,11 @@ def generate_train_data_from(filename, factor, patch_size, stride):
     '''
     try:
         image = scipy.misc.imread(filename)
-    except IOError:
+        assert len(image.shape) == 3, 'Not a colored image'
+        h, w, _ = image.shape
+        assert h > patch_size * factor
+        assert w > patch_size * factor
+    except (IOError, AssertionError):
         return []
     rescaled = downscale(image, 1 / factor)
 
