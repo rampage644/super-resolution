@@ -36,12 +36,12 @@ class SuperResolution(object):
             self.step = tf.Variable(0, trainable=False)
 
             self.input = tf.placeholder(
-                tf.float32, [None, self.height, self.width, 3], 'input'
+                tf.float32, [None, self.width, self.height, 3], 'input'
             )
             self.input_norm = tf.div(self.input - 127.0, 127.0)
 
             self.output = tf.placeholder(
-                tf.float32, [None, self.height * self.factor, self.width * self.factor, 3], 'output'
+                tf.float32, [None, self.width * self.factor, self.height * self.factor, 3], 'output'
             )
 
     def _create_inference(self):

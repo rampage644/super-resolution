@@ -35,7 +35,7 @@ def main(argv=None):
         FLAGS.filters = FILTERS + [FLAGS.factor ** 2 * COLORS]
         FLAGS.kernel_sizes = KERNEL_SIZES
         FLAGS.strides = [1] * len(KERNEL_SIZES)
-        FLAGS.height, FLAGS.width, _ = image.shape
+        FLAGS.width, FLAGS.height, _ = image.shape
         FLAGS.learning_rate = 0.1
 
         model = subpixel.model.SuperResolution(FLAGS)
