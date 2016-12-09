@@ -64,13 +64,12 @@ class SuperResolution(object):
             x0 = layer
 
         # implementing subpixel (deconv/upsampling) layer
-        # i've checked with paper formula and it seems like just reshape
-        # XXX: check this again: it just can't be that simple
-        subpixel = tf.reshape(x0, [
-            -1,
-            self.height * self.factor,
-            self.height * self.factor,
-            3])
+        # have to take into account 0-dim that is batch size
+        C = 3  # COLOR dimension
+        width, height = self.width, self.height  # patch size
+        r = self.factor
+        subpixel = tf.concat(2, [tf.reshape(a, (-1, width*r, r, C)) for a in tf.split(2, height, x0)])
+
         self.predicted_norm = subpixel
         self.predicted = self.predicted_norm * 127.0 + 127.0
 
