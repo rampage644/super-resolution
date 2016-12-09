@@ -71,11 +71,15 @@ def run():
 import itertools
 
 def show(me):
-    plt.imshow(me, interpolation='none')
+    # show first 3 images
+    for i in range(1, 4):
+        plt.figure(i)
+        plt.imshow(me[i], interpolation='none')
 
 r = 3  # upscaling factor
 WIDTH, HEIGHT = 2, 5  # last layer spatial dimension
-tshape = (WIDTH*r, HEIGHT*r, COLORS)
+BATCH = 32
+tshape = (BATCH, WIDTH*r, HEIGHT*r, COLORS)
 
 clrs = [
     [123, 0, 255],
@@ -94,18 +98,18 @@ for idx, clr in enumerate(clrs, start=1):
     plt.imshow(np.ones(shape=(WIDTH, HEIGHT, COLORS)) * clr)
 
 
-x0 = np.concatenate([np.ones(shape=(WIDTH, HEIGHT, COLORS)) * clr for clr in clrs], axis=2)
-x0.shape  # N-1 x N x COLORS * r ^ 2 -> 4x5x27
+x0 = np.concatenate([np.ones(shape=(BATCH, WIDTH, HEIGHT, COLORS)) * clr for clr in clrs], axis=3)
+x0.shape  # BATCH x WIDTH x HEIGHT x COLORS * r ^ 2 -> 32x2x5x27
 
 # here we need to reshape it so it becomes 12x15x3
 # visualize to look for patterns
-PS = np.zeros(shape=(WIDTH*r, HEIGHT*r, COLORS))
+PS = np.zeros(shape=(BATCH, WIDTH*r, HEIGHT*r, COLORS))
 
 plt.figure(figsize=(12, 5))
 
 def bruteforce():
-    for x, y, c in itertools.product(range(WIDTH*r), range(HEIGHT*r), range(COLORS)):
-        PS[x, y, c] = x0[x // r, y // r, COLORS * r * (y % r) + COLORS * (x % r) + c]
+    for i, x, y, c in itertools.product(range(BATCH), range(WIDTH*r), range(HEIGHT*r), range(COLORS)):
+        PS[i, x, y, c] = x0[i, x // r, y // r, COLORS * r * (y % r) + COLORS * (x % r) + c]
 
 bruteforce()
 
@@ -126,13 +130,19 @@ with tf.Session() as sess:
 # nice!
 # vsplit = split axis=0
 # hstack = concatenate axis=1
-x1 = np.hstack([np.reshape(a, (r * WIDTH, r, COLORS)) for a in np.hsplit(x0, HEIGHT)])
+x1 = np.concatenate([np.reshape(a, (-1, r * WIDTH, r, COLORS)) for a in np.split(x0, HEIGHT, axis=2)], axis=2)
+x1.shape
 show(x1)
 
 # try with tf
 # perfect!
 with tf.Session() as sess:
     x = tf.Variable(x0)
-    reshaped = tf.concat(1, [tf.reshape(a, (r * WIDTH, r, COLORS)) for a in tf.split(1, HEIGHT, x)])
+    reshaped = tf.concat(2, [tf.reshape(a, (-1, r * WIDTH, r, COLORS)) for a in tf.split(2, HEIGHT, x)])
     sess.run(tf.global_variables_initializer())
     show(reshaped.eval())
+
+# try to 100% replicate initial pattern (see `x0`)
+arrs = np.split(x0, HEIGHT, axis=2)
+arrs = np.split(x0, WIDTH, axis=1)
+
